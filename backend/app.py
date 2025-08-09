@@ -6,32 +6,29 @@ import json
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import io
-import os # ### ADD THIS IMPORT ###
+import os
 
 app = Flask(__name__)
 CORS(app)
 
+# ### ADD THIS NEW HEALTH CHECK ENDPOINT ###
+@app.route('/health', methods=['GET'])
+def health_check():
+    """A simple endpoint to confirm the service is up."""
+    return jsonify({"status": "healthy"}), 200
+
 def prepare_default_data():
-    """Loads, cleans, and calculates RFM for the default dataset ONCE."""
-    # ### THIS IS THE FIX: Use an absolute path to find the CSV ###
-    # Get the absolute path to the directory where this script is located
+    # ... (This function is correct, no changes here) ...
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    # Join it with the filename to get the full path to the CSV
     csv_path = os.path.join(BASE_DIR, 'online_retail_II.csv')
-
     df = pd.read_csv(csv_path)
-
-    # The rest of the function remains the same
     df.dropna(subset=['Customer ID'], inplace=True)
     df = df[df['Quantity'] > 0]
     df['Customer ID'] = df['Customer ID'].astype(str)
     df['TotalPrice'] = df['Quantity'] * df['Price']
     df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
     snapshot_date = df['InvoiceDate'].max() + dt.timedelta(days=1)
-    rfm_df = df.groupby(['Customer ID']).agg({
-        'InvoiceDate': lambda date: (snapshot_date - date.max()).days,
-        'Invoice': 'nunique', 'TotalPrice': 'sum'
-    })
+    rfm_df = df.groupby(['Customer ID']).agg({'InvoiceDate': lambda date: (snapshot_date - date.max()).days, 'Invoice': 'nunique', 'TotalPrice': 'sum'})
     rfm_df.rename(columns={'InvoiceDate': 'Recency', 'Invoice': 'Frequency', 'TotalPrice': 'MonetaryValue'}, inplace=True)
     return rfm_df
 
@@ -39,12 +36,10 @@ print("Loading and preparing default dataset...")
 DEFAULT_RFM_DF = prepare_default_data()
 print("Default dataset ready!")
 
-# The rest of the file (assign_persona, routes, etc.) is exactly the same...
+# ... The rest of the file (assign_persona, other routes) is exactly the same ...
 def assign_persona(rfm_with_clusters):
     agg_df = rfm_with_clusters.groupby('Cluster').agg(Recency=('Recency', 'mean'), Frequency=('Frequency', 'mean'), MonetaryValue=('MonetaryValue', 'mean')).round(2)
-    agg_df['r_rank'] = agg_df['Recency'].rank(ascending=True)
-    agg_df['f_rank'] = agg_df['Frequency'].rank(ascending=False)
-    agg_df['m_rank'] = agg_df['MonetaryValue'].rank(ascending=False)
+    agg_df['r_rank'], agg_df['f_rank'], agg_df['m_rank'] = agg_df['Recency'].rank(ascending=True), agg_df['Frequency'].rank(ascending=False), agg_df['MonetaryValue'].rank(ascending=False)
     agg_df['score'] = agg_df['r_rank'] + agg_df['f_rank'] + agg_df['m_rank']
     persona_list = []
     best_cluster, lapsed_cluster = agg_df['score'].idxmin(), agg_df['Recency'].idxmax()
