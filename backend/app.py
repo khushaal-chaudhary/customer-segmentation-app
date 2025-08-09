@@ -43,16 +43,31 @@ def assign_persona(rfm_with_clusters):
     agg_df['score'] = agg_df['r_rank'] + agg_df['f_rank'] + agg_df['m_rank']
     persona_list = []
     best_cluster, lapsed_cluster = agg_df['score'].idxmin(), agg_df['Recency'].idxmax()
+
     for cluster_id, row in agg_df.iterrows():
         persona, description = "Unknown", "A distinct customer segment."
-        if cluster_id == best_cluster: persona, description = "👑 The VIPs", "They basically live here..."
-        elif cluster_id == lapsed_cluster: persona, description = "👻 The Ghosts", "We remember them, but do they remember us?..."
+        
+        # ### THIS SECTION NOW HAS THE FULL, CORRECT DESCRIPTIONS ###
+        if cluster_id == best_cluster:
+            persona, description = "👑 The VIPs", "They basically live here. They buy often, spend big, and probably have a favorite parking spot. Don't upset them."
+        elif cluster_id == lapsed_cluster:
+            persona, description = "👻 The Ghosts", "We remember them, but do they remember us? They haven't been seen in ages. Send a search party (with a discount code)."
         else:
-            if row['f_rank'] < row['r_rank'] and row['f_rank'] < row['m_rank']: persona, description = "💡 The Hopefuls", "They keep showing up to the party..."
-            elif row['r_rank'] == 1: persona, description = "🌱 The Newbies", "Fresh faces! They just walked in..."
-            else: persona, description = "☕ The Regulars", "Not flashy, but they keep the lights on..."
-        if any(p['persona'] == persona for p in persona_list): persona, description = f"Segment {cluster_id}", "A distinct customer segment."
-        persona_list.append({"cluster_id": int(cluster_id), "persona": persona, "description": description, "avg_recency": float(row['Recency']), "avg_frequency": float(row['Frequency']), "avg_monetary": float(row['MonetaryValue'])})
+            if row['f_rank'] < row['r_rank'] and row['f_rank'] < row['m_rank']:
+                persona, description = "💡 The Hopefuls", "They keep showing up to the party but aren't spending much yet. A little encouragement could turn them into VIPs."
+            elif row['r_rank'] == 1:
+                persona, description = "🌱 The Newbies", "Fresh faces! They just walked in. Be nice, show them around, and maybe they'll stick around."
+            else:
+                persona, description = "☕ The Regulars", "Not flashy, but they keep the lights on. They're the reliable backbone of the business. Give them a nod of appreciation."
+        
+        if any(p['persona'] == persona for p in persona_list):
+             persona, description = f"Segment {cluster_id}", "A distinct customer segment."
+             
+        persona_list.append({
+            "cluster_id": int(cluster_id), "persona": persona, "description": description, 
+            "avg_recency": float(row['Recency']), "avg_frequency": float(row['Frequency']), 
+            "avg_monetary": float(row['MonetaryValue'])
+        })
     return persona_list
 
 @app.route('/get-headers', methods=['POST'])
@@ -94,16 +109,4 @@ def analyze_data():
         df[invoice_date_col] = pd.to_datetime(df[invoice_date_col])
         snapshot_date = df[invoice_date_col].max() + dt.timedelta(days=1)
         rfm_df = df.groupby([customer_id_col]).agg({'InvoiceDate': lambda date: (snapshot_date - date.max()).days, invoice_id_col: 'nunique', 'TotalPrice': 'sum'})
-        rfm_df.rename(columns={'InvoiceDate': 'Recency', invoice_id_col: 'Frequency', 'TotalPrice': 'MonetaryValue'}, inplace=True)
-    scaler = StandardScaler()
-    rfm_scaled = scaler.fit_transform(rfm_df)
-    kmeans = KMeans(n_clusters=cluster_count, init='k-means++', random_state=42, n_init=10)
-    kmeans.fit(rfm_scaled)
-    rfm_df['Cluster'] = kmeans.labels_
-    plot_data_json = json.loads(rfm_df.to_json(orient='table', index=True))
-    persona_data = assign_persona(rfm_df)
-    final_response = {"plotData": plot_data_json, "personaData": persona_data}
-    return jsonify(final_response)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        rfm_df.rename
