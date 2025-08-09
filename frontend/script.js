@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData();
         formData.append('file', file);
         statusDiv.textContent = 'Reading the spreadsheet...';
-        fetch('http://127.0.0.1:5000/get-headers', { method: 'POST', body: formData })
+        fetch('https://customer-insights-api.onrender.com', { method: 'POST', body: formData })
             .then(response => response.json())
             .then(data => {
                 statusDiv.textContent = '';
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Fetch data from backend
-        fetch('http://127.0.0.1:5000/analyze', {
+        fetch('https://customer-insights-api.onrender.com', {
             method: 'POST',
             body: formData
         })
