@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Get references to all HTML elements
+    // --- 1. GET REFERENCES TO ALL HTML ELEMENTS ---
     const defaultDataRadio = document.getElementById('default-data');
     const uploadDataRadio = document.getElementById('upload-data');
     const defaultDataInfo = document.getElementById('default-data-info');
@@ -20,7 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('close-btn');
     let uploadedFile = null;
 
-    // UI Logic and Event Listeners
+    // --- The live backend URL ---
+    const API_BASE_URL = 'https://customer-insights-api.onrender.com';
+
+    // --- 2. UI LOGIC AND EVENT LISTENERS ---
     [defaultDataRadio, uploadDataRadio].forEach(radio => {
         radio.addEventListener('change', () => {
             const isDefault = defaultDataRadio.checked;
@@ -45,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     fileInput.addEventListener('change', () => { if (fileInput.files.length > 0) handleFileSelect(fileInput.files[0]); });
     
-    // Functions for backend communication
+    // --- 3. FUNCTIONS FOR BACKEND COMMUNICATION ---
     function handleFileSelect(file) {
         if (!file) return;
         uploadedFile = file;
@@ -53,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData();
         formData.append('file', file);
         statusDiv.textContent = 'Reading the spreadsheet...';
-        fetch('https://customer-insights-api.onrender.com', { method: 'POST', body: formData })
+        fetch(`${API_BASE_URL}/get-headers`, { method: 'POST', body: formData })
             .then(response => response.json())
             .then(data => {
                 statusDiv.textContent = '';
@@ -70,10 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function createColumnMappings(headers) {
         columnMappingArea.innerHTML = '<p>Map your columns to the required RFM fields:</p>';
-        const mappings = [
-            { id: 'customer_id', label: 'Customer ID:' }, { id: 'invoice_id', label: 'Invoice ID:' },
-            { id: 'invoice_date', label: 'Invoice Date:' }, { id: 'quantity', label: 'Quantity:' }, { id: 'price', label: 'Price:' }
-        ];
+        const mappings = [{ id: 'customer_id', label: 'Customer ID:' }, { id: 'invoice_id', label: 'Invoice ID:' }, { id: 'invoice_date', label: 'Invoice Date:' }, { id: 'quantity', label: 'Quantity:' }, { id: 'price', label: 'Price:' }];
         mappings.forEach(mapping => {
             const div = document.createElement('div');
             div.className = 'config-item';
@@ -97,14 +97,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     analyzeBtn.addEventListener('click', () => {
-        // Show loader and clear previous results
         loaderOverlay.classList.remove('hidden');
         loaderOverlay.querySelector('p').textContent = 'Running the numbers. It\'s a whole thing...';
         statusDiv.textContent = '';
         plotDiv.innerHTML = '';
         personaArea.innerHTML = '';
-
-        // Prepare configuration
         const config = {
             use_default: defaultDataRadio.checked,
             cluster_count: parseInt(clusterCountInput.value)
@@ -115,71 +112,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 loaderOverlay.classList.add('hidden');
                 return;
             }
-            config.mappings = {
-                customer_id: document.getElementById('customer_id').value,
-                invoice_id: document.getElementById('invoice_id').value,
-                invoice_date: document.getElementById('invoice_date').value,
-                quantity: document.getElementById('quantity').value,
-                price: document.getElementById('price').value,
-            };
+            config.mappings = { customer_id: document.getElementById('customer_id').value, invoice_id: document.getElementById('invoice_id').value, invoice_date: document.getElementById('invoice_date').value, quantity: document.getElementById('quantity').value, price: document.getElementById('price').value, };
         }
-        
         const formData = new FormData();
         formData.append('config', JSON.stringify(config));
         if (!config.use_default && uploadedFile) {
             formData.append('file', uploadedFile);
         }
-
-        // Fetch data from backend
-        fetch('https://customer-insights-api.onrender.com', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            loaderOverlay.classList.add('hidden');
-            if (data.error) {
-                statusDiv.textContent = `Error: ${data.error}`;
-                return;
-            }
-            createPlot(data.plotData);
-            displayPersonas(data.personaData);
-        })
-        .catch(error => {
-            loaderOverlay.classList.add('hidden');
-            console.error('There was a problem with the fetch operation:', error);
-            statusDiv.textContent = 'Error: Could not fetch data from the server.';
-        });
+        fetch(`${API_BASE_URL}/analyze`, { method: 'POST', body: formData })
+            .then(response => {
+                if (!response.ok) {
+                    // This will catch HTTP errors like 404 or 500
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json(); // This can still fail if the body is not JSON
+            })
+            .then(data => {
+                loaderOverlay.classList.add('hidden');
+                if (data.error) {
+                    statusDiv.textContent = `Error: ${data.error}`;
+                    return;
+                }
+                createPlot(data.plotData);
+                displayPersonas(data.personaData);
+            })
+            .catch(error => {
+                loaderOverlay.classList.add('hidden');
+                console.error('There was a problem with the fetch operation:', error);
+                statusDiv.textContent = 'Error: Could not fetch data from the server.';
+            });
     });
     
-    // Display Functions
+    // --- 4. DISPLAY FUNCTIONS ---
     function displayPersonas(personas) {
         personas.forEach(p => {
             const card = document.createElement('div');
             card.className = 'persona-card';
-
-            // ### THIS INNERHTML IS THE ONLY PART THAT CHANGES ###
-            card.innerHTML = `
-                <h3>
-                    <span class="color-dot" style="background-color: ${COLOR_PALETTE[p.cluster_id % COLOR_PALETTE.length]}"></span>
-                    ${p.persona}
-                </h3>
-                <p>${p.description}</p>
-                <ul>
-                    <li>
-                        <span data-tooltip="How many days ago was their last purchase? (Lower is better)">Avg. Recency:</span>
-                        ${p.avg_recency} days
-                    </li>
-                    <li>
-                        <span data-tooltip="How many separate purchases have they made? (Higher is better)">Avg. Frequency:</span>
-                        ${p.avg_frequency}
-                    </li>
-                    <li>
-                        <span data-tooltip="What is their total spending? (Higher is better)">Avg. Monetary Value:</span>
-                        ${p.avg_monetary.toFixed(2)}
-                    </li>
-                </ul>
-            `;
+            card.innerHTML = `<h3><span class="color-dot" style="background-color: ${COLOR_PALETTE[p.cluster_id % COLOR_PALETTE.length]}"></span>${p.persona}</h3><p>${p.description}</p><ul><li><span data-tooltip="How many days ago was their last purchase? (Lower is better)">Avg. Recency:</span> ${p.avg_recency} days</li><li><span data-tooltip="How many separate purchases have they made? (Higher is better)">Avg. Frequency:</span> ${p.avg_frequency}</li><li><span data-tooltip="What is their total spending? (Higher is better)">Avg. Monetary Value:</span> ${p.avg_monetary.toFixed(2)}</li></ul>`;
             personaArea.appendChild(card);
         });
     }
@@ -195,33 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
             x: recency, y: frequency, z: monetary, mode: 'markers', type: 'scatter3d',
             marker: { color: pointColors, size: 5, opacity: 0.8 }
         };
-        const layout = {
-            title: { text: '3D Customer Segments (RFM)', font: { color: '#EAEAEA' } },
-            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-            margin: { l: 0, r: 0, b: 0, t: 40 },
-            scene: {
-                xaxis: { title: 'Recency (Days)', color: '#B3B3B3', gridcolor: '#2c2c2c' },
-                yaxis: { title: 'Frequency', color: '#B3B3B3', gridcolor: '#2c2c2c' },
-                zaxis: { title: 'Monetary Value (€)', color: '#B3B3B3', gridcolor: '#2c2c2c' }
-            }
-        };
+        const layout = { title: { text: '3D Customer Segments (RFM)', font: { color: '#EAEAEA' } }, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', margin: { l: 0, r: 0, b: 0, t: 40 }, scene: { xaxis: { title: 'Recency (Days)', color: '#B3B3B3', gridcolor: '#2c2c2c' }, yaxis: { title: 'Frequency', color: '#B3B3B3', gridcolor: '#2c2c2c' }, zaxis: { title: 'Monetary Value (€)', color: '#B3B3B3', gridcolor: '#2c2c2c' } } };
         Plotly.newPlot('plot', [trace], layout);
     }
 
-
     // Event listeners for the 'About' modal
-    infoBtn.addEventListener('click', () => {
-        modalOverlay.classList.remove('hidden');
-    });
-
-    closeBtn.addEventListener('click', () => {
-        modalOverlay.classList.add('hidden');
-    });
-
-    // Also close the modal if the user clicks the dark overlay
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
-            modalOverlay.classList.add('hidden');
-        }
-    });
+    infoBtn.addEventListener('click', () => { modalOverlay.classList.remove('hidden'); });
+    closeBtn.addEventListener('click', () => { modalOverlay.classList.add('hidden'); });
+    modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) { modalOverlay.classList.add('hidden'); } });
 });
