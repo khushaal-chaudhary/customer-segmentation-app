@@ -6,12 +6,22 @@ import json
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import io
+import os # ### ADD THIS IMPORT ###
 
 app = Flask(__name__)
 CORS(app)
 
 def prepare_default_data():
-    df = pd.read_csv('online_retail_II.csv')
+    """Loads, cleans, and calculates RFM for the default dataset ONCE."""
+    # ### THIS IS THE FIX: Use an absolute path to find the CSV ###
+    # Get the absolute path to the directory where this script is located
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Join it with the filename to get the full path to the CSV
+    csv_path = os.path.join(BASE_DIR, 'online_retail_II.csv')
+
+    df = pd.read_csv(csv_path)
+
+    # The rest of the function remains the same
     df.dropna(subset=['Customer ID'], inplace=True)
     df = df[df['Quantity'] > 0]
     df['Customer ID'] = df['Customer ID'].astype(str)
@@ -29,44 +39,25 @@ print("Loading and preparing default dataset...")
 DEFAULT_RFM_DF = prepare_default_data()
 print("Default dataset ready!")
 
+# The rest of the file (assign_persona, routes, etc.) is exactly the same...
 def assign_persona(rfm_with_clusters):
-    """Analyzes clusters using a ranking system with creative persona descriptions."""
-    agg_df = rfm_with_clusters.groupby('Cluster').agg(
-        Recency=('Recency', 'mean'), Frequency=('Frequency', 'mean'), MonetaryValue=('MonetaryValue', 'mean')
-    ).round(2)
+    agg_df = rfm_with_clusters.groupby('Cluster').agg(Recency=('Recency', 'mean'), Frequency=('Frequency', 'mean'), MonetaryValue=('MonetaryValue', 'mean')).round(2)
     agg_df['r_rank'] = agg_df['Recency'].rank(ascending=True)
     agg_df['f_rank'] = agg_df['Frequency'].rank(ascending=False)
     agg_df['m_rank'] = agg_df['MonetaryValue'].rank(ascending=False)
     agg_df['score'] = agg_df['r_rank'] + agg_df['f_rank'] + agg_df['m_rank']
-    
     persona_list = []
-    best_cluster = agg_df['score'].idxmin()
-    lapsed_cluster = agg_df['Recency'].idxmax()
-
+    best_cluster, lapsed_cluster = agg_df['score'].idxmin(), agg_df['Recency'].idxmax()
     for cluster_id, row in agg_df.iterrows():
         persona, description = "Unknown", "A distinct customer segment."
-
-        # ### UPDATED PERSONA TEXT ###
-        if cluster_id == best_cluster:
-            persona, description = "👑 The VIPs", "They basically live here. They buy often, spend big, and probably have a favorite parking spot. Don't upset them."
-        elif cluster_id == lapsed_cluster:
-            persona, description = "👻 The Ghosts", "We remember them, but do they remember us? They haven't been seen in ages. Send a search party (with a discount code)."
+        if cluster_id == best_cluster: persona, description = "👑 The VIPs", "They basically live here. They buy often, spend big, and probably have a favorite parking spot. Don't upset them."
+        elif cluster_id == lapsed_cluster: persona, description = "👻 The Ghosts", "We remember them, but do they remember us? They haven't been seen in ages. Send a search party (with a discount code)."
         else:
-            if row['f_rank'] < row['r_rank'] and row['f_rank'] < row['m_rank']:
-                persona, description = "💡 The Hopefuls", "They keep showing up to the party but aren't spending much yet. A little encouragement could turn them into VIPs."
-            elif row['r_rank'] == 1:
-                persona, description = "🌱 The Newbies", "Fresh faces! They just walked in. Be nice, show them around, and maybe they'll stick around."
-            else:
-                persona, description = "☕ The Regulars", "Not flashy, but they keep the lights on. They're the reliable backbone of the business. Give them a nod of appreciation."
-        
-        if any(p['persona'] == persona for p in persona_list):
-             persona = f"Segment {cluster_id}"
-             description = "A distinct customer segment."
-
-        persona_list.append({
-            "cluster_id": int(cluster_id), "persona": persona, "description": description,
-            "avg_recency": float(row['Recency']), "avg_frequency": float(row['Frequency']), "avg_monetary": float(row['MonetaryValue'])
-        })
+            if row['f_rank'] < row['r_rank'] and row['f_rank'] < row['m_rank']: persona, description = "💡 The Hopefuls", "They keep showing up to the party but aren't spending much yet. A little encouragement could turn them into VIPs."
+            elif row['r_rank'] == 1: persona, description = "🌱 The Newbies", "Fresh faces! They just walked in. Be nice, show them around, and maybe they'll stick around."
+            else: persona, description = "☕ The Regulars", "Not flashy, but they keep the lights on. They're the reliable backbone of the business. Give them a nod of appreciation."
+        if any(p['persona'] == persona for p in persona_list): persona, description = f"Segment {cluster_id}", "A distinct customer segment."
+        persona_list.append({"cluster_id": int(cluster_id), "persona": persona, "description": description, "avg_recency": float(row['Recency']), "avg_frequency": float(row['Frequency']), "avg_monetary": float(row['MonetaryValue'])})
     return persona_list
 
 @app.route('/get-headers', methods=['POST'])
