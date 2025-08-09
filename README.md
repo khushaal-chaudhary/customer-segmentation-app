@@ -2,7 +2,7 @@
 
 An interactive, full-stack web application for customer segmentation using RFM analysis and K-Means clustering. This tool allows users to analyze a sample dataset or upload their own to discover meaningful customer personas.
 
-**[Link to Live Demo - We will add this later]**
+**[[Link to Live Demo]](https://customer-segmentation-app-mauve.vercel.app/)**
 
 ---
 
