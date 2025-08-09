@@ -345,18 +345,17 @@ footer a:hover { text-decoration: underline; }
 
 /* ### ADD THESE NEW RULES FOR THE ENHANCED MODAL ### */
 
-#modal-content h4 {
-    color: var(--accent-primary);
-    margin-top: 25px;
-    margin-bottom: 10px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
-}
-
-#modal-content ul {
-    padding-left: 20px;
-}
-
-#modal-content ul li {
-    margin-bottom: 10px;
+#modal-content {
+    position: relative;
+    padding: 30px 40px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    max-width: 600px;
+    /* ### ADD THESE TWO LINES ### */
+    max-height: 80vh; /* Set max height to 80% of the viewport height */
+    overflow-y: auto; /* Add a vertical scrollbar only when needed */
 }
