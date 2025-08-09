@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Customer Segmentation Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+</head>
+<body>
+    <main>
+        <h1>Let's Figure Out Your Customers 
+            <i class="fa-solid fa-circle-info" id="info-btn"></i>
+        </h1>
+        <div class="dashboard-grid">
+
+            <div class="step-card">
+                <h2><i class="fa-solid fa-database"></i> First, Who Are We Looking At?</h2>
+                <div class="data-source-toggle">
+                    <input type="radio" id="default-data" name="data-source" value="default" checked>
+                    <label for="default-data">Use the people we know.</label>
+
+                    <input type="radio" id="upload-data" name="data-source" value="upload">
+                    <label for="upload-data">Bring in a new crowd.</label>
+                </div>
+
+                <div id="default-data-info">
+                    <p><strong>Sample Data:</strong> Online Retail II, a classic dataset from the UCI repository.</p>
+                    <ul>
+                        <li>Records from a UK-based online gift shop, frozen in time between 2009 and 2011.</li>
+                        <li>Starts with over a million transactions, which we boil down to about 6,000 unique customers.</li>
+                    </ul>
+                </div>
+                
+                <div id="upload-area" class="hidden">
+                    <p>Upload a .csv or .xlsx file. <span id="requirements-toggle">(Show Requirements)</span></p>
+                    <div id="data-requirements" class="hidden">
+                        <ul>
+                            <li>Needs columns for Customer ID, Invoice ID, Invoice Date, Quantity, and Price.</li>
+                        </ul>
+                    </div>
+                    <div id="drop-zone">
+                        <p>Drop the spreadsheet here. We'll make sense of it.</p>
+                        <input type="file" id="file-input">
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-card">
+                <h2><i class="fa-solid fa-sliders"></i> Now, How Should We Group Them?</h2>
+                <div id="column-mapping-area" class="hidden">
+                    </div>
+                <div class="config-item">
+                    <label for="cluster-count">How many friend groups should we make?</label>
+                    <input type="number" id="cluster-count" value="4" min="2" max="8">
+                </div>
+                <button id="analyze-btn"><i class="fa-solid fa-chart-simple"></i> Sort the Crowd</button>
+            </div>
+
+            <div class="step-card results-card">
+                <h2><i class="fa-solid fa-chart-pie"></i> Okay, Here's the Tea</h2>
+                
+                <div id="loader-overlay" class="hidden">
+                    <div class="spinner"></div>
+                    <p>Analyzing...</p>
+                </div>
+
+                <div id="status"></div>
+                <div id="plot"></div>
+                <div id="persona-area"></div>
+            </div>
+            
+        </div>
+
+        <footer>
+            <p>
+                App created by Khushaal Chaudhary | 
+                <a href="https://www.linkedin.com/in/khushaal-chaudhary" target="_blank">Connect on LinkedIn</a>
+            </p>
+        </footer>
+    </main>
+
+    <div id="modal-overlay" class="hidden">
+        <div id="modal-content">
+            <span id="close-btn">&times;</span>
+            <h2>About This Tool</h2>
+
+            <h4>Current Methodology</h4>
+            <p>This application performs a complete RFM (Recency, Frequency, Monetary) analysis and K-Means clustering to segment customers into distinct groups. It's a classic, powerful, and interpretable approach to understanding customer value.</p>
+
+            <h4>Potential Enhancements & Next Steps</h4>
+            <p>This tool serves as an interactive foundation. For a deeper, enterprise-level analysis, we could explore:</p>
+            <ul>
+                <li>
+                    <strong>Advanced Clustering:</strong> While K-Means is excellent, we could employ algorithms like <strong>DBSCAN</strong> to identify unique "outlier" customers or <strong>Gaussian Mixture Models (GMM)</strong> for a more nuanced, probabilistic segmentation.
+                </li>
+                <li>
+                    <strong>Richer Features:</strong> The analysis could be greatly enriched by moving beyond RFM to include <strong>behavioral features</strong> like product category preferences, discount affinity, or website engagement metrics.
+                </li>
+                <li>
+                    <strong>Predictive Modeling:</strong> The next frontier is to build predictive models on top of these segments, such as forecasting <strong>Customer Lifetime Value (CLV)</strong> or creating a <strong>Churn Prediction</strong> model to proactively retain at-risk customers.
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
