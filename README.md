@@ -36,7 +36,7 @@ The results are presented in an interactive 3D plot and accompanied by auto-gene
 
 1.  **Clone the repository:**
     ```bash
-    git clone [your-repo-link]
+    git clone https://github.com/khushaal-chaudhary/customer-segmentation-app.git
     ```
 2.  **Navigate to the `backend` directory and create a virtual environment:**
     ```bash
