@@ -359,3 +359,13 @@ footer a:hover { text-decoration: underline; }
     max-height: 80vh; /* Set max height to 80% of the viewport height */
     overflow-y: auto; /* Add a vertical scrollbar only when needed */
 }
+
+/* Style for the upload guidelines text */
+.upload-guideline {
+    font-size: 13px;
+    color: var(--text-secondary);
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
