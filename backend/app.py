@@ -9,18 +9,16 @@ import io
 import os
 
 app = Flask(__name__)
-CORS(app)
+# ### THIS IS THE ONLY LINE THAT CHANGED ###
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-# ### CHANGE 1: Initialize the cached DataFrame as None ###
 DEFAULT_RFM_DF = None
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """A simple endpoint to confirm the service is up."""
     return jsonify({"status": "healthy"}), 200
 
 def prepare_default_data():
-    """Loads, cleans, and calculates RFM. This is now only called when needed."""
     print("--- LAZY LOADING: Preparing default dataset for the first time... ---")
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(BASE_DIR, 'online_retail_II.csv')
@@ -29,7 +27,7 @@ def prepare_default_data():
     df = df[df['Quantity'] > 0]
     df['Customer ID'] = df['Customer ID'].astype(str)
     df['TotalPrice'] = df['Quantity'] * df['Price']
-    df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
+    df['InvoiceDate'] = pd.to_datetime(df[InvoiceDate])
     snapshot_date = df['InvoiceDate'].max() + dt.timedelta(days=1)
     rfm_df = df.groupby(['Customer ID']).agg({'InvoiceDate': lambda date: (snapshot_date - date.max()).days, 'Invoice': 'nunique', 'TotalPrice': 'sum'})
     rfm_df.rename(columns={'InvoiceDate': 'Recency', 'Invoice': 'Frequency', 'TotalPrice': 'MonetaryValue'}, inplace=True)
@@ -37,7 +35,6 @@ def prepare_default_data():
     return rfm_df
 
 def assign_persona(rfm_with_clusters):
-    # ... (no changes to this function) ...
     agg_df = rfm_with_clusters.groupby('Cluster').agg(Recency=('Recency', 'mean'), Frequency=('Frequency', 'mean'), MonetaryValue=('MonetaryValue', 'mean')).round(2)
     agg_df['r_rank'], agg_df['f_rank'], agg_df['m_rank'] = agg_df['Recency'].rank(ascending=True), agg_df['Frequency'].rank(ascending=False), agg_df['MonetaryValue'].rank(ascending=False)
     agg_df['score'] = agg_df['r_rank'] + agg_df['f_rank'] + agg_df['m_rank']
@@ -57,7 +54,6 @@ def assign_persona(rfm_with_clusters):
 
 @app.route('/get-headers', methods=['POST'])
 def get_headers():
-    # ... (no changes to this function) ...
     if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
     file = request.files['file']
     if file.filename == '': return jsonify({"error": "No selected file"}), 400
@@ -70,24 +66,18 @@ def get_headers():
 
 @app.route('/analyze', methods=['POST'])
 def analyze_data():
-    global DEFAULT_RFM_DF # ### CHANGE 2: Declare we are modifying the global variable ###
-
+    global DEFAULT_RFM_DF
     config_str = request.form.get('config')
     if not config_str: return jsonify({"error": "Configuration data was missing."}), 400
     config = json.loads(config_str)
     use_default, cluster_count = config.get('use_default', True), int(config.get('cluster_count', 4))
-
     rfm_df = None
     if use_default:
-        # ### CHANGE 3: The lazy loading logic ###
         if DEFAULT_RFM_DF is None:
-            # If the data isn't cached yet, load it now.
             DEFAULT_RFM_DF = prepare_default_data()
         rfm_df = DEFAULT_RFM_DF.copy()
     else:
-        # User upload logic remains the same
         if 'file' not in request.files: return jsonify({"error": "No file part"}), 400
-        # ... (rest of the upload logic is the same) ...
         file, mappings = request.files['file'], config.get('mappings', {})
         try:
             if file.filename.endswith('.csv'): df = pd.read_csv(io.StringIO(file.read().decode('utf-8')))
@@ -102,13 +92,10 @@ def analyze_data():
         snapshot_date = df[invoice_date_col].max() + dt.timedelta(days=1)
         rfm_df = df.groupby([customer_id_col]).agg({'InvoiceDate': lambda date: (snapshot_date - date.max()).days, invoice_id_col: 'nunique', 'TotalPrice': 'sum'})
         rfm_df.rename(columns={'InvoiceDate': 'Recency', invoice_id_col: 'Frequency', 'TotalPrice': 'MonetaryValue'}, inplace=True)
-
     scaler = StandardScaler()
     rfm_scaled = scaler.fit_transform(rfm_df)
     kmeans = KMeans(n_clusters=cluster_count, init='k-means++', random_state=42, n_init=10)
     kmeans.fit(rfm_scaled)
-    rfm_df['Cluster'] = kmeans.labels_
-
     plot_data_json = json.loads(rfm_df.to_json(orient='table', index=True))
     persona_data = assign_persona(rfm_df)
     final_response = {"plotData": plot_data_json, "personaData": persona_data}
