@@ -14,3 +14,5 @@ dist/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+online_retail_II.csv

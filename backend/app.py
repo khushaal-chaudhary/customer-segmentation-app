@@ -1,3 +1,6 @@
+# The file content is mostly the same, only prepare_default_data is modified
+# to check for the environment variable.
+
 import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -9,7 +12,6 @@ import io
 import os
 
 app = Flask(__name__)
-# ### THIS IS THE ONLY LINE THAT CHANGED ###
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 DEFAULT_RFM_DF = None
@@ -19,21 +21,35 @@ def health_check():
     return jsonify({"status": "healthy"}), 200
 
 def prepare_default_data():
-    print("--- LAZY LOADING: Preparing default dataset for the first time... ---")
+    """Loads data based on an environment variable."""
+    # ### THIS IS THE NEW LOGIC ###
+    # Check for an environment variable. Default to 'true' (use sample).
+    use_sample = os.getenv('USE_SAMPLED_DATA', 'true').lower() == 'true'
+
+    if use_sample:
+        filename = 'online_retail_sampled.csv'
+        print("--- Using SAMPLE dataset based on environment variable. ---")
+    else:
+        filename = 'online_retail_II.csv'
+        print("--- Using FULL dataset based on environment variable. ---")
+
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(BASE_DIR, 'online_retail_II.csv')
+    csv_path = os.path.join(BASE_DIR, filename)
+
     df = pd.read_csv(csv_path)
+    # ... rest of the function is the same ...
     df.dropna(subset=['Customer ID'], inplace=True)
     df = df[df['Quantity'] > 0]
     df['Customer ID'] = df['Customer ID'].astype(str)
     df['TotalPrice'] = df['Quantity'] * df['Price']
-    df['InvoiceDate'] = pd.to_datetime(df[InvoiceDate])
+    df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
     snapshot_date = df['InvoiceDate'].max() + dt.timedelta(days=1)
     rfm_df = df.groupby(['Customer ID']).agg({'InvoiceDate': lambda date: (snapshot_date - date.max()).days, 'Invoice': 'nunique', 'TotalPrice': 'sum'})
     rfm_df.rename(columns={'InvoiceDate': 'Recency', 'Invoice': 'Frequency', 'TotalPrice': 'MonetaryValue'}, inplace=True)
     print("--- LAZY LOADING: Default dataset is now cached. ---")
     return rfm_df
 
+# ... The rest of the file (assign_persona, routes, etc.) is exactly the same ...
 def assign_persona(rfm_with_clusters):
     agg_df = rfm_with_clusters.groupby('Cluster').agg(Recency=('Recency', 'mean'), Frequency=('Frequency', 'mean'), MonetaryValue=('MonetaryValue', 'mean')).round(2)
     agg_df['r_rank'], agg_df['f_rank'], agg_df['m_rank'] = agg_df['Recency'].rank(ascending=True), agg_df['Frequency'].rank(ascending=False), agg_df['MonetaryValue'].rank(ascending=False)
