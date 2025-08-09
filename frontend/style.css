@@ -370,10 +370,10 @@ footer a:hover { text-decoration: underline; }
     margin-top: 15px;
 }
 
-/* Fix for persona description text being cut off */
+/* Final fix for persona description text being cut off */
 .persona-card p {
-    white-space: normal; /* Allows text to wrap to the next line */
-    overflow: visible;   /* Ensures overflowing text is not hidden */
-    text-overflow: clip; /* Prevents the '...' from appearing */
-    line-height: 1.5;    /* Improves readability of multi-line text */
+    white-space: normal !important; /* Force text to wrap */
+    overflow: visible !important;   /* Force overflowing text to be visible */
+    text-overflow: clip !important; /* Force the prevention of '...' */
+    line-height: 1.5;
 }
