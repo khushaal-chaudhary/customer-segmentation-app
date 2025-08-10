@@ -1,4 +1,4 @@
-# Customer Segmentation Apparatus 🔮
+# The Customer Sorting Hat
 
 An interactive, full-stack web application for customer segmentation using RFM analysis and K-Means clustering. This tool allows users to analyze a sample dataset or upload their own to discover meaningful customer personas.
 
