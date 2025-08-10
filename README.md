@@ -1,13 +1,14 @@
-# Customer Segmentation Apparatus 🔮
+# The Customer Sorting Hat
 
 An interactive, full-stack web application for customer segmentation using RFM analysis and K-Means clustering. This tool allows users to analyze a sample dataset or upload their own to discover meaningful customer personas.
 
-**[Link to Live Demo - We will add this later]**
+**[[Link to Live Demo]](https://customer-segmentation-app-mauve.vercel.app/)**
 
 ---
 
 
-*(You can add a screenshot here after taking one)*
+<img width="457" height="269" alt="image" src="https://github.com/user-attachments/assets/7f6f7cf5-6dd2-4695-90f1-a856fa3ad2d6" />
+
 
 ## About The Project
 
@@ -35,7 +36,7 @@ The results are presented in an interactive 3D plot and accompanied by auto-gene
 
 1.  **Clone the repository:**
     ```bash
-    git clone [your-repo-link]
+    git clone https://github.com/khushaal-chaudhary/customer-segmentation-app.git
     ```
 2.  **Navigate to the `backend` directory and create a virtual environment:**
     ```bash
